@@ -5,220 +5,159 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 
 public class AppGUI extends JFrame {
 
-    private JLabel folderLabel;
-    private JLabel fileLabel;
-    private JTextArea mainArea;
-
-    private NoteBook noteBook = new NoteBook();
-    private String currentFullPath = "";
-    private String currentFolderPath = "";
+    private final NoteBook noteBook = new NoteBook();
+    private final JTextArea mainArea = new JTextArea();
+    private final JLabel fileLabel = new JLabel("Месяц: [Не выбран]");
+    private final JLabel folderLabel = new JLabel("Год: [Не выбран]");
+    private Path currentFile;
 
     public AppGUI() {
         setTitle("Финансовый Блокнот");
-        setSize(860, 520);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setSize(880, 520);
         setLocationRelativeTo(null);
-        getContentPane().setBackground(new Color(245, 246, 248));
-        setLayout(null);
+        setLayout(new BorderLayout(12, 12));
+        getRootPane().setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
 
-        Font mainFont = new Font("Segoe UI", Font.PLAIN, 14);
-        Font boldFont = new Font("Segoe UI", Font.BOLD, 14);
+        add(buildTopPanel(), BorderLayout.NORTH);
+        add(buildCenterPanel(), BorderLayout.CENTER);
+        add(buildActionPanel(), BorderLayout.EAST);
+        add(buildBottomPanel(), BorderLayout.SOUTH);
+    }
 
-        JButton chooseFileBtn = new JButton("Выбрать файл");
-        chooseFileBtn.setBounds(40, 25, 160, 35);
-        chooseFileBtn.setFont(boldFont);
-        chooseFileBtn.setBackground(new Color(52, 152, 219));
-        chooseFileBtn.setForeground(Color.WHITE);
-        chooseFileBtn.setFocusPainted(false);
-        chooseFileBtn.setBorder(BorderFactory.createEmptyBorder());
-        chooseFileBtn.addActionListener(e -> handleChooseFile());
-        add(chooseFileBtn);
+    private JPanel buildTopPanel() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+        panel.add(styledButton("Выбрать файл", new Color(52, 152, 219), true, this::handleChooseFile));
+        panel.add(fileLabel);
+        panel.add(folderLabel);
+        return panel;
+    }
 
-        fileLabel = new JLabel("Месяц: [Не выбран]");
-        fileLabel.setBounds(230, 25, 220, 35);
-        fileLabel.setFont(mainFont);
-        fileLabel.setForeground(new Color(44, 62, 80));
-        add(fileLabel);
-
-        folderLabel = new JLabel("Год: [Не выбран]");
-        folderLabel.setBounds(470, 25, 300, 35);
-        folderLabel.setFont(mainFont);
-        folderLabel.setForeground(new Color(44, 62, 80));
-        add(folderLabel);
-
-        JButton addButton = new JButton("Добавить");
-        addButton.setBounds(40, 85, 160, 35);
-        addButton.setFont(boldFont);
-        addButton.setBackground(Color.WHITE);
-        addButton.setForeground(new Color(46, 204, 113));
-        addButton.setBorder(BorderFactory.createLineBorder(new Color(46, 204, 113), 1));
-        addButton.setFocusPainted(false);
-        addButton.addActionListener(e -> handleAddNote());
-        add(addButton);
-
-        JButton deleteButton = new JButton("Удалить");
-        deleteButton.setBounds(40, 135, 160, 35);
-        deleteButton.setFont(boldFont);
-        deleteButton.setBackground(Color.WHITE);
-        deleteButton.setForeground(new Color(231, 76, 60));
-        deleteButton.setBorder(BorderFactory.createLineBorder(new Color(231, 76, 60), 1));
-        deleteButton.setFocusPainted(false);
-        deleteButton.addActionListener(e -> handleDeleteNote());
-        add(deleteButton);
-
-        JButton balanceButton = new JButton("Показать баланс");
-        balanceButton.setBounds(40, 185, 160, 35);
-        balanceButton.setFont(boldFont);
-        balanceButton.setBackground(new Color(155, 89, 182));
-        balanceButton.setForeground(Color.WHITE);
-        balanceButton.setFocusPainted(false);
-        balanceButton.setBorder(BorderFactory.createEmptyBorder());
-        balanceButton.addActionListener(e -> handleShowBalance());
-        add(balanceButton);
-
-        mainArea = new JTextArea(" Пожалуйста, выберите файл месяца для начала работы...");
+    private JScrollPane buildCenterPanel() {
         mainArea.setFont(new Font("Consolas", Font.PLAIN, 15));
         mainArea.setEditable(false);
-        mainArea.setBackground(Color.WHITE);
-        mainArea.setForeground(new Color(52, 73, 94));
-
         mainArea.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+        mainArea.setText("Пожалуйста, выберите файл месяца для начала работы...");
+        return new JScrollPane(mainArea);
+    }
 
-        JScrollPane scrollPane = new JScrollPane(mainArea);
-        scrollPane.setBounds(220, 85, 580, 265);
-        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(218, 223, 230), 1));
-        add(scrollPane);
+    private JPanel buildActionPanel() {
+        JPanel panel = new JPanel(new GridLayout(3, 1, 0, 10));
+        panel.add(styledButton("Добавить", new Color(46, 204, 113), false, this::handleAddNote));
+        panel.add(styledButton("Удалить", new Color(231, 76, 60), false, this::handleDeleteNote));
+        panel.add(styledButton("Показать баланс", new Color(155, 89, 182), true, this::handleShowBalance));
+        return panel;
+    }
 
-        JButton readButton = new JButton("Чтение");
-        readButton.setBounds(460, 375, 160, 38);
-        readButton.setFont(boldFont);
-        readButton.setBackground(new Color(149, 165, 166));
-        readButton.setForeground(Color.WHITE);
-        readButton.setFocusPainted(false);
-        readButton.setBorder(BorderFactory.createEmptyBorder());
-        readButton.addActionListener(e -> handleRead());
-        add(readButton);
+    private JPanel buildBottomPanel() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
+        panel.add(styledButton("Чтение", new Color(149, 165, 166), true, this::handleRead));
+        panel.add(styledButton("Запись", new Color(39, 174, 96), true, this::handleWrite));
+        return panel;
+    }
 
-        JButton writeButton = new JButton("Запись");
-        writeButton.setBounds(640, 375, 160, 38);
-        writeButton.setFont(boldFont);
-        writeButton.setBackground(new Color(39, 174, 96));
-        writeButton.setForeground(Color.WHITE);
-        writeButton.setFocusPainted(false);
-        writeButton.setBorder(BorderFactory.createEmptyBorder());
-        writeButton.addActionListener(e -> handleWrite());
-        add(writeButton);
+    private JButton styledButton(String text, Color color, boolean filled, Runnable onClick) {
+        JButton b = new JButton(text);
+        b.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        b.setFocusPainted(false);
+        if (filled) {
+            b.setBackground(color);
+            b.setForeground(Color.WHITE);
+            b.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
+        } else {
+            b.setBackground(Color.WHITE);
+            b.setForeground(color);
+            b.setBorder(BorderFactory.createLineBorder(color));
+        }
+        b.addActionListener(e -> onClick.run());
+        return b;
     }
 
     private void handleChooseFile() {
-        JFileChooser chooser = new JFileChooser();
-        chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-        chooser.setCurrentDirectory(new File("."));
+        JFileChooser chooser = new JFileChooser(new File("."));
+        chooser.setFileFilter(new FileNameExtensionFilter("Текстовые файлы (*.txt)", "txt"));
+        if (chooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
 
-        FileNameExtensionFilter filter = new FileNameExtensionFilter("Текстовые файлы (*.txt)", "txt");
-        chooser.setFileFilter(filter);
+        File selected = chooser.getSelectedFile();
+        currentFile = selected.toPath();
 
-        int result = chooser.showOpenDialog(this);
-        if (result == JFileChooser.APPROVE_OPTION) {
-            File selectedFile = chooser.getSelectedFile();
-
-            currentFullPath = selectedFile.getAbsolutePath();
-            currentFolderPath = selectedFile.getParent();
-
-            String parentFolderName = selectedFile.getParentFile().getName();
-            folderLabel.setText("Год (папка):  " + parentFolderName);
-
-            String fileName = selectedFile.getName();
-            if (fileName.endsWith(".txt")) {
-                fileName = fileName.substring(0, fileName.length() - 4);
-            }
-            fileLabel.setText("Месяц (файл):  " + fileName);
-
-            handleRead();
-        }
-    }
-
-    private void refreshUI() {
-        mainArea.setText(noteBook.printAll());
+        folderLabel.setText("Год (папка): " + selected.getParentFile().getName());
+        fileLabel.setText("Месяц (файл): " + selected.getName().replaceFirst("\\.txt$", ""));
+        handleRead();
     }
 
     private void handleRead() {
-        if (currentFullPath.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Сначала выберите файл месяца!", "Внимание", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
+        if (currentFile == null) { warn("Сначала выберите файл месяца!"); return; }
         try {
-            noteBook.readFromFile(currentFullPath);
-            refreshUI();
+            noteBook.readFromFile(currentFile);
+            refresh();
         } catch (IOException e) {
-            JOptionPane.showMessageDialog(this,
-                    "Ошибка чтения файла!\nОписание: " + e.getMessage(),
-                    "Ошибка", JOptionPane.ERROR_MESSAGE);
+            error("Ошибка чтения файла", e);
         }
     }
 
     private void handleWrite() {
-        if (currentFullPath.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Нечего сохранять. Выберите файл!", "Внимание", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
+        if (currentFile == null) { warn("Нечего сохранять. Выберите файл!"); return; }
         try {
-            Files.createDirectories(Paths.get(currentFolderPath));
-            noteBook.loadToFile(currentFullPath);
-            JOptionPane.showMessageDialog(this, "Данные успешно сохранены!", "Успех", JOptionPane.INFORMATION_MESSAGE);
+            noteBook.writeToFile(currentFile);
+            info("Данные успешно сохранены!");
         } catch (IOException e) {
-            JOptionPane.showMessageDialog(this,
-                    "Не удалось записать данные:\n" + e.getMessage(),
-                    "Ошибка", JOptionPane.ERROR_MESSAGE);
+            error("Не удалось записать данные", e);
         }
     }
 
     private void handleAddNote() {
-        if (currentFullPath.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Сначала выберите рабочий файл!", "Внимание", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        String userInput = JOptionPane.showInputDialog(this,
-                "Введите заметку в формате 'Цена:Описание':",
-                "Новая запись", JOptionPane.QUESTION_MESSAGE);
-        if (userInput != null && !userInput.trim().isEmpty()) {
-            noteBook.addNote(userInput.trim());
-            refreshUI();
+        if (currentFile == null) { warn("Сначала выберите рабочий файл!"); return; }
+        String input = JOptionPane.showInputDialog(this,
+                "Введите заметку в формате 'Цена:Описание':", "Новая запись", JOptionPane.QUESTION_MESSAGE);
+        if (input == null || input.isBlank()) return;
+        try {
+            noteBook.add(Note.parse(input.trim()));
+            refresh();
+        } catch (IllegalArgumentException e) {
+            warn(e.getMessage());
         }
     }
 
     private void handleDeleteNote() {
-        if (noteBook.getBook().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Список пуст!", "Внимание", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        String inputId = JOptionPane.showInputDialog(this, "Введите ID строки для удаления:", "Удаление", JOptionPane.QUESTION_MESSAGE);
+        if (noteBook.isEmpty()) { warn("Список пуст!"); return; }
+        String input = JOptionPane.showInputDialog(this, "Введите ID строки для удаления:", "Удаление", JOptionPane.QUESTION_MESSAGE);
+        if (input == null) return;
         try {
-            if (inputId != null) {
-                int id = Integer.parseInt(inputId.trim());
-                noteBook.deleteNote(id);
-                refreshUI();
-            }
+            noteBook.removeAt(Integer.parseInt(input.trim()));
+            refresh();
         } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Введите корректное число!", "Ошибка формата", JOptionPane.ERROR_MESSAGE);
+            warn("Введите корректное число!");
+        } catch (IndexOutOfBoundsException e) {
+            warn(e.getMessage());
         }
     }
 
     private void handleShowBalance() {
-        if (currentFullPath.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Выберите файл для расчета баланса.", "Внимание", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
+        if (currentFile == null) { warn("Выберите файл для расчета баланса."); return; }
         String message = String.format(
-                "📈 Прибыль за месяц:  +%d\n📉 Траты за месяц:  %d\n─────────────────────────\n💰 Общий баланс:  %d",
-                noteBook.getPositiveBalance(), noteBook.getNegativeBalance(), noteBook.getBalance()
-        );
+                "📈 Прибыль за месяц: +%d%n📉 Траты за месяц: %d%n─────────────────────────%n💰 Общий баланс: %d",
+                noteBook.getIncome(), noteBook.getExpenses(), noteBook.getBalance());
         JOptionPane.showMessageDialog(this, message, "Финансовый Отчет", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void refresh() {
+        if (noteBook.isEmpty()) { mainArea.setText("Поле заметок пусто!"); return; }
+        StringBuilder sb = new StringBuilder();
+        int id = 0;
+        for (Note note : noteBook.getNotes()) {
+            sb.append('[').append(id++).append("] ").append(note.toRaw()).append('\n');
+        }
+        mainArea.setText(sb.toString());
+    }
+
+    private void warn(String msg) { JOptionPane.showMessageDialog(this, msg, "Внимание", JOptionPane.WARNING_MESSAGE); }
+    private void info(String msg) { JOptionPane.showMessageDialog(this, msg, "Успех", JOptionPane.INFORMATION_MESSAGE); }
+    private void error(String title, Exception e) {
+        JOptionPane.showMessageDialog(this, title + ":\n" + e.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
     }
 }

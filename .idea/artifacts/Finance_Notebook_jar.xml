@@ -1,0 +1,11 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="Finance_Notebook:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/Finance_Notebook_jar</output-path>
+    <root id="archive" name="Finance_Notebook.jar">
+      <element id="directory" name="META-INF">
+        <element id="file-copy" path="$PROJECT_DIR$/META-INF/MANIFEST.MF" />
+      </element>
+      <element id="module-output" name="Finance_Notebook" />
+    </root>
+  </artifact>
+</component>

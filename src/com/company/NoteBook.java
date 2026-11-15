@@ -1,99 +1,59 @@
 package com.company;
 
-import java.nio.file.Paths;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class NoteBook {
-    private ArrayList<Note> book;
+    private final List<Note> notes = new ArrayList<>();
 
-    public NoteBook() {
-        this.book = new ArrayList<>();
+    public void add(Note note) { notes.add(note); }
+
+    public void removeAt(int index) {
+        if (index < 0 || index >= notes.size()) {
+            throw new IndexOutOfBoundsException("Нет записи с ID " + index);
+        }
+        notes.remove(index);
     }
 
-    public ArrayList<Note> getBook() {
-        return this.book;
+    public List<Note> getNotes() { return Collections.unmodifiableList(notes); }
+
+    public boolean isEmpty() { return notes.isEmpty(); }
+
+    public int getBalance() {
+        return notes.stream().mapToInt(Note::getPrice).sum();
     }
 
-    public void readFromFile(String nameFile) throws IOException { //чтение из файла
-        Path path = Paths.get(nameFile);
-        List<String> lines = Files.readAllLines(path);
+    public int getIncome() {
+        return notes.stream().mapToInt(Note::getPrice).filter(p -> p > 0).sum();
+    }
 
-        this.book.clear();
-        for (String el : lines){
-            if (!el.trim().isEmpty()){
-                this.book.add(new Note(el));
+    public int getExpenses() {
+        return notes.stream().mapToInt(Note::getPrice).filter(p -> p < 0).sum();
+    }
+
+    public void clear() { notes.clear(); }
+
+    public void readFromFile(Path file) throws IOException {
+        List<String> lines = Files.readAllLines(file, StandardCharsets.UTF_8);
+        clear();
+        for (String line : lines) {
+            String trimmed = line.trim();
+            if (trimmed.isEmpty()) continue;
+            try {
+                add(Note.parse(trimmed));
+            } catch (IllegalArgumentException e) {
+                System.err.println("Пропущена некорректная строка: " + trimmed);
             }
         }
     }
 
-    public void loadToFile(String nameFile) throws IOException { //запись в файл
-        Path path = Paths.get(nameFile);
-        List<String> linesToSave = new ArrayList<>();
-
-        for (Note el : this.book){
-            linesToSave.add(el.getText());
-        }
-
-        Files.write(path, linesToSave);
-    }
-
-    public void addNote(String text){ //добавление заметки в книгу
-        Note newNote = new Note(text);
-        this.book.add(newNote);
-    }
-
-    public void deleteNote(int id){ //удаление заметки
-        this.book.remove(id);
-    }
-
-    public String printAll(){
-        if (this.book.isEmpty()) return "Поле заметок пусто!";
-
-        StringBuilder allText = new StringBuilder();
-        int id = 0;
-        for (Note el : this.book){
-            allText.append("[").append(id).append("] ").append(el.getText()).append("\n");
-            id ++;
-        }
-
-        return allText.toString();
-    }
-
-    public int getBalance(){ //вывод итогового баланса
-        int balance = 0;
-
-        for (Note el : this.book){
-            balance += el.getPrice();
-        }
-
-        return balance;
-    }
-
-    public int getNegativeBalance(){ //вывод трат
-        int negBalance = 0;
-
-        for (Note el : this.book){
-            if (el.getPrice() < 0){
-                negBalance += el.getPrice();
-            }
-        }
-
-        return negBalance;
-    }
-
-    public int getPositiveBalance(){ //вывод прибыли
-        int posBalance = 0;
-
-        for (Note el : this.book){
-            if (el.getPrice() > 0){
-                posBalance += el.getPrice();
-            }
-        }
-
-        return posBalance;
+    public void writeToFile(Path file) throws IOException {
+        List<String> lines = notes.stream().map(Note::toRaw).toList();
+        Files.write(file, lines, StandardCharsets.UTF_8);
     }
 }
